@@ -1,8 +1,8 @@
+import os
 import cv2
 import time
-import os
-import math
-import numpy as np # For some colormap effects if needed
+import numpy  # For some colormap effects if needed
+
 
 # Helper function to convert FourCC integer to string for printing
 def fourcc_to_string(fourcc_int):
@@ -13,7 +13,7 @@ def fourcc_to_string(fourcc_int):
     except Exception: return str(fourcc_int)
 
 # --- Configuration ---
-CAMERA_INDEX = 2 # Try 0, then 1, 2, etc.
+CAMERA_INDEX = 0 # Try 0, 1, 2, etc.
 WINDOW_NAME = "Microscope Power Tools"
 CAPTURE_PATH = "./microscope_captures/"
 
@@ -88,7 +88,7 @@ def mouse_events(event, x_click, y_click, flags, param):
             if len(dist_measure_points) == 2:
                 p1, p2 = dist_measure_points[0], dist_measure_points[1]
                 dx, dy = p2[0] - p1[0], p2[1] - p1[1]
-                dist_measured_pixels = math.sqrt(dx**2 + dy**2)
+                dist_measured_pixels = numpy.sqrt(dx**2 + dy**2)
                 dist_measured_real = dist_measured_pixels / PIXELS_PER_REAL_UNIT if PIXELS_PER_REAL_UNIT > 0 else 0
                 info_message = f"Distance: {dist_measured_real:.2f}{REAL_WORLD_UNIT_LABEL}"
         elif mode == "angle_measure":
@@ -99,15 +99,15 @@ def mouse_events(event, x_click, y_click, flags, param):
                 v1 = (p2[0] - p1[0], p2[1] - p1[1])
                 v2 = (p3[0] - p1[0], p3[1] - p1[1])
                 dot_product = v1[0]*v2[0] + v1[1]*v2[1]
-                mag_v1 = math.sqrt(v1[0]**2 + v1[1]**2)
-                mag_v2 = math.sqrt(v2[0]**2 + v2[1]**2)
+                mag_v1 = numpy.sqrt(v1[0]**2 + v1[1]**2)
+                mag_v2 = numpy.sqrt(v2[0]**2 + v2[1]**2)
                 if mag_v1 * mag_v2 == 0: # Avoid division by zero
                     angle_measured_degrees = 0
                 else:
                     cos_angle = dot_product / (mag_v1 * mag_v2)
                     cos_angle = max(-1.0, min(1.0, cos_angle)) # Clamp to avoid domain errors with acos
-                    angle_rad = math.acos(cos_angle)
-                    angle_measured_degrees = math.degrees(angle_rad)
+                    angle_rad = numpy.acos(cos_angle)
+                    angle_measured_degrees = numpy.degrees(angle_rad)
                 info_message = f"Angle: {angle_measured_degrees:.2f} degrees"
         elif mode == "annotate_place_point":
             current_annotation_point = (original_x, original_y)
