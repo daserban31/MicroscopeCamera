@@ -2,6 +2,8 @@ import os
 import cv2
 import time
 import numpy  # For some colormap effects if needed
+import tkinter as tk
+from tkinter import filedialog
 
 
 # Helper function to convert FourCC integer to string for printing
@@ -11,6 +13,22 @@ def fourcc_to_string(fourcc_int):
         val = int(fourcc_int)
         return "".join([chr((val >> 8 * i) & 0xFF) for i in range(4)])
     except Exception: return str(fourcc_int)
+    return None
+
+def ask_for_save_path(initial_dir, title, file_types, default_extension):
+    """Opens a 'Save As' dialog and returns the selected path."""
+    root = tk.Tk()
+    root.withdraw()  # Hide the main Tkinter window
+    
+    filepath = filedialog.asksaveasfilename(
+        initialdir=initial_dir,
+        title=title,
+        filetypes=file_types,
+        defaultextension=default_extension
+    )
+    
+    root.destroy()  # Clean up the Tkinter instance
+    return filepath
 
 # --- Configuration ---
 CAMERA_INDEX = 0 # Try 0, 1, 2, etc.
@@ -275,20 +293,50 @@ while True:
         if key == ord('q'): break
         elif key == ord('s'):
             ts = time.strftime("%Y%m%d-%H%M%S")
-            fn = os.path.join(CAPTURE_PATH, f"capture_{ts}.png")
-            cv2.imwrite(fn, overlay_frame) # Save with overlays
-            info_message = f"Saved: {fn}"
+            default_filename = f"capture_{ts}.png"
+            
+            filepath = ask_for_save_path(
+                initial_dir=CAPTURE_PATH,
+                title="Save Image As...",
+                file_types=(("PNG files", "*.png"), ("JPEG files", "*.jpg"), ("All files", "*.*")),
+                default_extension=".png"
+            )
+
+            # If the user selected a path (didn't cancel)
+            if filepath:
+                cv2.imwrite(filepath, overlay_frame) # Save with overlays
+                # Use os.path.basename to show just the filename in the message
+                info_message = f"Saved: {os.path.basename(filepath)}"
+            else:
+                info_message = "Save cancelled."
         elif key == ord('r'):
             if not is_recording:
+                # --- MODIFIED: Start Recording Logic ---
                 ts = time.strftime("%Y%m%d-%H%M%S")
-                fn = os.path.join(CAPTURE_PATH, f"video_{ts}.mp4")
-                fourcc = cv2.VideoWriter_fourcc(*'X264') # or 'MP4V'
-                video_writer = cv2.VideoWriter(fn, fourcc, fps, (original_frame_width, original_frame_height))
-                if video_writer.isOpened():
-                    is_recording = True; info_message = f"Recording to {fn}"
-                else: info_message = "Error starting recording!"
+                default_filename = f"video_{ts}.mp4"
+                
+                filepath = ask_for_save_path(
+                    initial_dir=CAPTURE_PATH,
+                    title="Record Video As...",
+                    file_types=(("MP4 files", "*.mp4"), ("AVI files", "*.avi"), ("All files", "*.*")),
+                    default_extension=".mp4"
+                )
+
+                if filepath:
+                    fourcc = cv2.VideoWriter_fourcc(*'X264') # or 'MP4V'
+                    video_writer = cv2.VideoWriter(filepath, fourcc, fps, (original_frame_width, original_frame_height))
+                    if video_writer.isOpened():
+                        is_recording = True
+                        info_message = f"Recording to {os.path.basename(filepath)}"
+                    else:
+                        info_message = "Error starting recording!"
+                else:
+                    info_message = "Recording cancelled."
+                # -----------------------------------
             else:
-                is_recording = False; video_writer.release(); info_message = "Recording stopped."
+                is_recording = False
+                video_writer.release()
+                info_message = "Recording stopped."
         elif key == ord('d'):
             mode = "distance_measure"; dist_measure_points = []; info_message = "Distance Mode: Click 2 points."
         elif key == ord('a'):
